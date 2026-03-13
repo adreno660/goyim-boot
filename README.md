@@ -186,6 +186,10 @@ You can use the built in script by [HarryJarry1](https://github.com/HarryJarry1)
 ```bash
 bash /bootloader/opt/oobeskip.sh
 ```
+or
+```bash
+oobeskip
+```
 Then there is the second option this one is unpached and quite newer.
 boot into your local chromeOS root (NOT DEBIAN), enter vt2 (ctrl + alt + f2 (often refresh, or back arrow), login as root by simplying typing in "root" and pressing enter into the screeen that appears and run:
 ```bash
