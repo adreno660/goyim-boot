@@ -1,0 +1,2 @@
+mount --bind /dev/null /tmp/machine-info
+initctl restart ui
