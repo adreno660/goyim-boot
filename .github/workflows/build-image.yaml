@@ -15,7 +15,7 @@ jobs:
 
     strategy: 
       matrix:
-        board: [dedede, octopus, coral, grunt, nissa, zork, corsola, jacuzzi, hatch, snappy, hana]
+        board: [nissa]
 
     runs-on: ubuntu-latest
     steps:
