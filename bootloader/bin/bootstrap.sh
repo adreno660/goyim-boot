@@ -124,47 +124,90 @@ EOF
 print_selector() {
   local rootfs_partitions="$1"
   local i=1
-
-  echo "┌──────────────────────┐"
-  echo "│ Shimboot OS Selector │"
-  echo "└──────────────────────┘"
+  echo "┌──────────────────────────────────────────┐"
+  echo "│         SH1MKEX: Multi-OS Loader         │"
+  echo "└──────────────────────────────────────────┘"
 
   if [ "${rootfs_partitions}" ]; then
     for rootfs_partition in $rootfs_partitions; do
-      #i don't know of a better way to split a string in the busybox shell
       local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
       local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-      echo "${i}) ${part_name} on ${part_path}"
+      
+      # Mount check to flag KEXEC vs NATIVE
+      mount -o ro "$part_path" /mnt 2>/dev/null
+      if [ -f "/mnt/boot/vmlinuz" ] || [ -f "/mnt/vmlinuz" ]; then
+        echo "${i}) [KEXEC] ${part_name} (${part_path})"
+      else
+        echo "${i}) [NATIVE] ${part_name} (${part_path})"
+      fi
+      umount /mnt 2>/dev/null
       i=$((i+1))
     done
   else
-    echo "no bootable partitions found. please see the shimboot documentation to mark a partition as bootable."
+    echo "!! No bootable partitions found !!"
   fi
-
-  echo "q) reboot"
-  echo "s) enter a shell"
-  echo "l) view license"
+  echo "────────────────────────────────────────────"
+  echo "k) kexec shell  s) emergency shell  q) reboot"
 }
 
 get_selection() {
   local rootfs_partitions="$1"
-  local i=1
+  read -p "SH1MKEX > " selection
 
-  read -p "Your selection: " selection
-  if [ "$selection" = "q" ]; then
-    echo "rebooting now."
-    reboot -f
-  elif [ "$selection" = "s" ]; then
-    reset
-    enable_debug_console "$TTY1"
-    return 0
-  elif [ "$selection" = "l" ]; then
-    clear
-    print_license
-    echo
-    read -p "press [enter] to return to the bootloader menu"
-    return 1
-  fi
+  # Handle special keys
+  case "$selection" in
+    q) reboot -f ;;
+    s) reset; enable_debug_console "$TTY1"; return 0 ;;
+    k) echo "Entering manual kexec mode..."; /bin/sh; return 1 ;;
+  esac
+
+  # Logic for partition numbers
+  local i=1
+  for rootfs_partition in $rootfs_partitions; do
+    if [ "$selection" = "$i" ]; then
+      local part_path=$(echo "$rootfs_partition" | cut -d ":" -f 1)
+      local part_flags=$(echo "$rootfs_partition" | cut -d ":" -f 3)
+      
+      if [ "$part_flags" = "CrOS" ]; then
+        print_donor_selector "$rootfs_partitions"
+        get_donor_selection "$rootfs_partitions" "$part_path"
+      else
+        boot_target "$part_path"
+      fi
+      return 0
+    fi
+    i=$((i+1))
+  done
+}
+
+
+get_selection() {
+  local rootfs_partitions="$1"
+  read -p "SH1MKEX > " selection
+
+  case "$selection" in
+    q) reboot -f ;;
+    s) reset; enable_debug_console "$TTY1"; return 0 ;;
+    l) clear; print_license; read; return 1 ;;
+    k) 
+      echo "Entering kexec manual mode..."
+      /bin/sh
+      return 1 
+      ;;
+  esac
+
+  # Existing selection logic for numbers
+  local i=1
+  for rootfs_partition in $rootfs_partitions; do
+    if [ "$selection" = "$i" ]; then
+      local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
+      boot_target "$part_path"
+      return 1
+    fi
+    i=$((i+1))
+  done
+}
+
 
   local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
   if [ "$selection_cmd" = "rescue" ]; then
@@ -292,28 +335,61 @@ exec_init() {
 boot_target() {
   local target="$1"
 
-  echo "moving mounts to newroot"
-  mkdir /newroot
-  #use cryptsetup to check if the rootfs is encrypted
+  echo "mounting target to /newroot"
+  mkdir -p /newroot
+  
+  # Handle encrypted partitions if cryptsetup exists
   if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
-    cryptsetup open $target rootfs
+    cryptsetup open "$target" rootfs
     mount /dev/mapper/rootfs /newroot
   else
-    mount $target /newroot
+    mount "$target" /newroot
   fi
-  #bind mount /dev/console to show systemd boot msgs
+
+  # SH1MKEX: Check for custom kernel and jump
+  # Looks in /boot/vmlinuz or /vmlinuz (common for Arch/Ubuntu/Alpine)
+  local kernel=""
+  [ -f "/newroot/boot/vmlinuz" ] && kernel="/newroot/boot/vmlinuz"
+  [ -f "/newroot/vmlinuz" ] && kernel="/newroot/vmlinuz"
+
+  if [ -n "$kernel" ]; then
+    local initrd=""
+    [ -f "/newroot/boot/initrd.img" ] && initrd="/newroot/boot/initrd.img"
+    [ -f "/newroot/boot/initramfs-linux.img" ] && initrd="/newroot/boot/initramfs-linux.img"
+
+    echo "SH1MKEX: Custom kernel found at $kernel"
+    echo "Loading kernel for kexec jump..."
+    
+    # We use -l to load. --append passes the boot flags.
+    # rootwait is important for USB drives.
+    kexec -l "$kernel" \
+      ${initrd:+--initrd=$initrd} \
+      --append="root=$target rw rootwait console=tty1 quiet"
+
+    echo "Jumping to new kernel now! Say goodbye to ChromeOS kernel."
+    sync
+    kexec -e
+    
+    # If kexec -e fails (e.g. incompatible kernel), it will fall through to native boot
+    echo "kexec jump failed! Falling back to native Shimboot (ChromeOS kernel)..."
+    sleep 2
+  fi
+
+  # --- Fallback: Native Shimboot Boot (Standard Pivot Root) ---
   if [ -f "/bin/frecon-lite" ]; then 
     rm -f /dev/console
-    touch /dev/console #this has to be a regular file otherwise the system crashes afterwards
+    touch /dev/console
     mount -o bind "$TTY1" /dev/console
   fi
+  
   move_mounts /newroot
 
-  echo "switching root"
+  echo "switching root (native mode)"
   mkdir -p /newroot/bootloader
   pivot_root /newroot /newroot/bootloader
   exec_init
 }
+
 
 boot_chromeos() {
   local target="$1"
