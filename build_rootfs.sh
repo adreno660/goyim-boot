@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#build the debian rootfs
+# SH1MKEX: build the rootfs with kexec support
+# Based on the original shimboot build_rootfs.sh
 
 . ./common.sh
 
@@ -126,9 +127,18 @@ chroot_command="$chroot_script \
   '$user_passwd' '$enable_root' '$disable_base' \
   '$arch'" 
 
+# Run standard setup
 LC_ALL=C chroot $rootfs_dir /bin/sh -c "${chroot_command}"
+
+# === SH1MKEX: Inject kexec dependencies ===
+print_info "injecting kexec-tools for SH1MKEX"
+if [ "$distro" = "debian" ] || [ "$distro" = "ubuntu" ]; then
+  LC_ALL=C chroot $rootfs_dir /bin/sh -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y kexec-tools"
+elif [ "$distro" = "alpine" ]; then
+  LC_ALL=C chroot $rootfs_dir /bin/sh -c "apk add kexec-tools"
+fi
 
 trap - EXIT
 unmount_all
 
-print_info "rootfs has been created"
+print_info "SH1MKEX rootfs has been created"
