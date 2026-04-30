@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>SH1MKEX - Multi-OS Loader</title>
+    <style>
+      @font-face { font-family: "unifont"; src: url("font/unifont-15.1.02.otf"); }
+      body { background-color: black; filter: contrast(100.00001%); }
+      * { color: white; font-family: "unifont", monospace; line-height: 1.2; }
+      pre { white-space: pre-wrap; max-width: 800px; margin: 20px; color: #00ffff; }
+      a { color: #00ff00; text-decoration: none; }
+      a:hover { background-color: #333; }
+      b { color: #ff00ff; display: block; margin-top: 20px; }
+    </style>
+  </head>
+  <body>
+    <pre>
+┌──────────────────────────────────────────┐
+│      SH1MKEX: THE KEXEC MULTI-BOOTER      │
+└──────────────────────────────────────────┘
+<a href="#info">1) Project Info</a>
+<a href="#kexec">2) The Kexec Advantage</a>
+<a href="#build">3) Build Instructions</a>
+<a href="#usage">4) Booting OSs</a>
+
+<b id="info">Project Info:</b>
+SH1MKEX is a universal bootloader for Chromebooks. It uses an RMA shim to initialize the hardware, then provides a menu to select and boot any Linux distribution via kexec. Unlike original shimboot, you are not locked to the ChromeOS kernel.
+
+<b id="kexec">The Kexec Advantage:</b>
+Traditional shimboot forces you to use the ChromeOS kernel, which breaks many systemd features. SH1MKEX solves this by using "kexec" to jump into a modern Linux kernel (like Arch or Ubuntu) stored on your USB. This means:
+- No more patched systemd.
+- Faster boot times.
+- Better hardware support via modern kernels.
+
+<b id="build">Build Instructions:</b>
+SH1MKEX does not provide prebuilt images. You must build your own:
+1. Clone: <a href="https://github.com/flowdev-yee/SH1MKEX">https://github.com/flowdev-yee/SH1MKEX</a>
+2. Run: `sudo ./build_complete.sh [board_name]`
+3. The script will automatically inject kexec-tools into your loader.
+
+<b id="usage">Booting OSs:</b>
+1. Flash your SH1MKEX .bin to a USB.
+2. Use GParted to add new EXT4 partitions for your other OSs (Arch, Alpine, etc.).
+3. Plug into your Chromebook, enter recovery mode, and select your OS from the SH1MKEX menu.
+
+<b id="copyright">Copyright:</b>
+SH1MKEX is based on Shimboot (ading2210) but modified for universal Kexec support. 
+Licensed under GNU GPL v3. 
+Maintained by flowdev-yee.
+    </pre>
+  </body>
+</html>
