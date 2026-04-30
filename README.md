@@ -1,10 +1,10 @@
 # SH1MKEX 🚀
 **The Multi-Distro Kexec Bootloader for Chromebooks**
 
-SH1MKEX (Shimboot-Kexec) is an evolution of the [Shimboot](https://github.com) project. It transforms a standard RMA shim into a universal bootloader that can "jump" into any Linux distribution using `kexec`.
+SH1MKEX (Shimboot-Kexec) is an evolution of the [Shimboot](https://github.com/ading2210/shimboot) project. It transforms a standard RMA shim into a universal bootloader that can "jump" into any Linux distribution using `kexec`.
 
 ### 🌟 Why SH1MKEX?
-Standard Shimboot locks you into a specific ChromeOS kernel, requiring a [patched systemd](https://github.com-repo) and causing issues with modern distros. 
+Standard Shimboot only lets you use pre-set distros without customization.
 
 **SH1MKEX changes the game:**
 - **True Multi-Boot:** Scan and boot multiple OS partitions from a single USB.
@@ -24,10 +24,7 @@ Standard Shimboot locks you into a specific ChromeOS kernel, requiring a [patche
 ### 🚀 Building & Setup
 
 #### 1. Build the SH1MKEX Base
-Clone this repo and build your loader image. Our modified `build_rootfs.sh` automatically injects `kexec-tools` into the image.
-```bash
-sudo ./build_complete.sh [your_board_name]
-```
+Clone this repo and build your loader image. Run the files 'build_rootfs.sh' and 'build_squashfs.sh' before running 'build.sh'
 
 #### 2. Prepare the USB
 Flash the generated `.bin` to your USB drive. Afterward, use `gparted` to add extra partitions at the end of the drive for your target distros (e.g., Arch Linux, Alpine).
@@ -45,12 +42,12 @@ SH1MKEX looks for partitions with specific flags. Ensure your target OS partitio
 ---
 
 ### ⚠️ Requirements & Warnings
-- **Developer Mode:** Must be enabled on the target Chromebook.
-- **Kernel Drivers:** Ensure the kernel on your *target* distro (e.g., Arch) includes drivers for Chromebook hardware (touchpad, audio, etc.). We recommend using [Eupnea](https://github.com) or [Depthcharge](https://github.com) kernels.
+- **Developer Mode:** Must be enabled on the target Chromebook. (We recommend enabling it, then going to the recovery menu before it can be revoked.)
+- **Kernel Drivers:** Ensure the kernel on your *target* distro (e.g., Arch) includes drivers for Chromebook hardware (touchpad, audio, etc.). We recommend using Eupnea or Depthcharge kernels.
 - **Board Compatibility:** Only works on boards supported by the original Shimboot project (where RMA shims are available).
 
 ---
 
 ### 🤝 Credits
-- [ading2210](https://github.com) for the original Shimboot.
+- [ading2210](https://github.com/adding2210) for the original Shimboot.
 - The [Mercury Workshop](https://mercuryworkshop.xyz) and [Sh1mmer](https://sh1mmer.me) teams.
