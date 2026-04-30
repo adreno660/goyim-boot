@@ -49,5 +49,5 @@ SH1MKEX looks for partitions with specific flags. Ensure your target OS partitio
 ---
 
 ### 🤝 Credits
-- [ading2210](https://github.com/adding2210) for the original Shimboot.
+- [ading2210](https://github.com/ading2210) for the original Shimboot.
 - The [Mercury Workshop](https://mercurywork.shop) and [Sh1mmer](https://sh1mmer.me) teams.
